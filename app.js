@@ -1,4 +1,5 @@
 const express = require("express");
+const exphbs = require("express-handlebars");
 
 require("dotenv").config();
 const app = express();
@@ -24,9 +25,30 @@ app.use(
     },
   })
 );
+const handlebars = exphbs.create({ extname: ".hbs" });
+app.engine(".hbs", handlebars.engine);
+app.set("view engine", ".hbs");
+var hbs = exphbs.create({});
+hbs.handlebars.registerHelper("eq", function (a, b) {
+  if (a === b) {
+    return 1;
+  } else {
+    return 0;
+  }
+});
 
+hbs.handlebars.registerHelper("role", function (r) {
+  console.log("hi");
+  console.log("ll");
+  if (req.session.userrole === 1) {
+    return 1;
+  } else {
+    return 0;
+  }
+});
 const rootroute = require("./server/routers/loginroute.js");
 const bookroute = require("./server/routers/bookroute.js");
+const req = require("express/lib/request");
 app.use("/book", bookroute);
 app.use("/", rootroute);
 

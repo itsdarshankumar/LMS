@@ -1,0 +1,33 @@
+<div class="header">Books
+</div>
+<table cellspacing="0">
+  <tr>
+    <th>Name</th>
+    <th>Number</th>
+    <th>Availiability</th>
+  <th></th>
+  </tr>
+  {{#each data}}
+    <tr id={{this.id}}>
+      <td>{{this.bookname}}</td>
+      <td>{{this.number}}</td>
+      {{#if this.avail}}
+        <td>Availiable</td>
+      {{else}}
+        <td>Unavailiable</td>
+      {{/if}}
+    <td id="action">{{#if (role 1)}}<button
+          type="button"
+          class="btn btn-danger"
+          id="btn"
+          onclick="checkId({{this.id}},{{this.avail}})"
+        >Change State</button>
+       {{else}} <button
+          type="button"
+          class="btn btn-success"
+          id="btn"
+          onclick="getId({{this.id}})"
+        >Checkout</button>{{/if}}</td>
+    </tr>
+  {{/each}}
+</table>

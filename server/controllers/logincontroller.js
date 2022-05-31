@@ -23,8 +23,8 @@ exports.loginsubmit = (req, res) => {
             console.log("login successfull");
             req.session.userinfo = rows[0].username; //session
             req.session.userrole = rows[0].role;
-            res.send("authorised");
-            //res.redirect("/dashboard");
+            console.log(req.session);
+            res.redirect("/book");
           } else {
             res.send("Incorrect Enrollment number or password");
           }
@@ -40,19 +40,16 @@ exports.loginsubmit = (req, res) => {
 exports.login = (req, res) => {
   console.log("User Detected");
   if (req.session.userinfo) {
-    res.send("authorised by session");
-    //return res.redirect("/dashboard");
+    return res.redirect("/book");
   } else {
-    res.send("loginpage");
-    //return res.sendFile("/views/screens/index.html", { root: "." });
+    return res.sendFile("/views/screens/index.html", { root: "." });
   }
 };
 
 //signup
 exports.signup = (req, res) => {
   console.log("signup detect");
-  res.send("signup page");
-  //res.sendFile("/views/screens/sign-up.html", { root: "." });
+  res.sendFile("/views/screens/sign-up.html", { root: "." });
 };
 //basic signup entry
 exports.signupentry = (req, res) => {
