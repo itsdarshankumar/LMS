@@ -1,13 +1,12 @@
 const db = require("../../database.js", { root: "." });
 const express = require("express");
 const bcrypt = require("bcrypt");
-
 const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 //logincheck hashing
-exports.loginsubmit = (req, res) => {
+exports.loginsubmit = (req, res, next) => {
   console.log("Login Attempted");
   console.log(req.body);
   const { username, pass } = req.body;
@@ -23,8 +22,8 @@ exports.loginsubmit = (req, res) => {
             console.log("login successfull");
             req.session.userinfo = rows[0].username; //session
             req.session.userrole = rows[0].role;
-            console.log(req.session);
-            res.redirect("/book");
+            req.data = rows[0].role;
+            return next();
           } else {
             res.send("Incorrect Enrollment number or password");
           }
@@ -37,10 +36,11 @@ exports.loginsubmit = (req, res) => {
 };
 
 //login
-exports.login = (req, res) => {
+exports.login = (req, res, next) => {
   console.log("User Detected");
   if (req.session.userinfo) {
-    return res.redirect("/book");
+    req.data = req.session.userrole;
+    return next();
   } else {
     return res.sendFile("/views/screens/index.html", { root: "." });
   }

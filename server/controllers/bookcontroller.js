@@ -1,269 +1,315 @@
 const db = require("../../database.js", { root: "." });
-const { use } = require("bcrypt/promises");
-const { query } = require("express");
 const express = require("express");
 const res = require("express/lib/response");
-const { search } = require("../routers/bookroute");
 const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 //books views
 exports.book = (req, res) => {
-  console.log("view requested");
-  let queryto = "";
-  if (req.query.search) {
-    console.log("search");
-    queryto =
-      "SELECT * FROM books WHERE bookname=" + db.escape(req.query.search);
-  } else {
-    queryto = "SELECT * FROM books WHERE avail = 1 ORDER BY id DESC";
-  }
-  db.query(queryto, (err, rows) => {
-    if (!err) {
-      if (rows[0] === undefined) {
-        res.send("Sorry no books found in library");
-      } else {
-        let rowData = Object.values(JSON.parse(JSON.stringify(rows)));
-        res.render("data", { layout: "books", data: rowData });
-      }
+  if (req.session.userinfo) {
+    console.log("view requested");
+    let role1 = req.data || req.session.userrole;
+    console.log(role1);
+    let queryto = "";
+    if (req.query.search) {
+      console.log("search");
+      queryto =
+        "SELECT * FROM books WHERE bookname=" + db.escape(req.query.search);
     } else {
-      console.log(err);
+      queryto = "SELECT * FROM books WHERE avail = 1 ORDER BY id DESC";
     }
-  });
-};
-
-//book checkout
-exports.booksubmit = (req, res) => {
-  console.log("checkout posted");
-  const { bookid } = req.body;
-  const username = req.session.userinfo;
-  db.query(
-    "SELECT * FROM books WHERE id=" + db.escape(bookid) + " AND avail=1",
-    (err, rows) => {
+    db.query(queryto, (err, rows) => {
       if (!err) {
         if (rows[0] === undefined) {
-          res.send("book unavailiable for checkout");
+          res.send("Sorry no books found in library");
         } else {
-          db.query(
-            "SELECT * FROM requests WHERE username=" +
-              db.escape(username) +
-              " AND returned = 0 AND bookid=" +
-              db.escape(bookid) +
-              " AND (status=1 OR status=2)",
-            (err, rows) => {
-              if (!err) {
-                if (rows[0] === undefined) {
-                  db.query(
-                    "INSERT INTO requests(bookid,username,status,returned) VALUES(" +
-                      db.escape(bookid) +
-                      "," +
-                      db.escape(username) +
-                      ",2,0)",
-                    (err, rows) => {
-                      if (!err) {
-                        res.send("checkout done, waiting for approval!");
-                      } else {
-                        console.log(err);
-                      }
-                    }
-                  );
-                } else {
-                  res.send("you already have this book");
-                }
-              }
-            }
-          );
+          console.log("rend start");
+          let rowData = Object.values(JSON.parse(JSON.stringify(rows)));
+          let newData = { info: rowData, role: role1 };
+          console.log(newData);
+          res.render("data", { layout: "books", data: newData });
         }
       } else {
         console.log(err);
       }
-    }
-  );
+    });
+  } else {
+    res.redirect("/");
+  }
+};
+
+//book checkout
+exports.booksubmit = (req, res) => {
+  if (req.session.userinfo && req.session.userrole === 0) {
+    console.log("checkout posted");
+    const { bookid } = req.body;
+    const username = req.session.userinfo;
+    db.query(
+      "SELECT * FROM books WHERE id=" + db.escape(bookid) + " AND avail=1",
+      (err, rows) => {
+        if (!err) {
+          if (rows[0] === undefined) {
+            res.send("book unavailiable for checkout");
+          } else {
+            db.query(
+              "SELECT * FROM requests WHERE username=" +
+                db.escape(username) +
+                " AND returned = 0 AND bookid=" +
+                db.escape(bookid) +
+                " AND (status=1 OR status=2)",
+              (err, rows) => {
+                if (!err) {
+                  if (rows[0] === undefined) {
+                    db.query(
+                      "INSERT INTO requests(bookid,username,status,returned) VALUES(" +
+                        db.escape(bookid) +
+                        "," +
+                        db.escape(username) +
+                        ",2,0)",
+                      (err, rows) => {
+                        if (!err) {
+                          res.send("checkout done, waiting for approval!");
+                        } else {
+                          console.log(err);
+                        }
+                      }
+                    );
+                  } else {
+                    res.send("you already have this book");
+                  }
+                }
+              }
+            );
+          }
+        } else {
+          console.log(err);
+        }
+      }
+    );
+  } else {
+    res.send("Not Allowed");
+  }
 };
 
 //book approval render
 exports.bookapprovalrender = (req, res) => {
-  console.log("admin request");
-  db.query("SELECT * FROM requests WHERE status=2", (err, rows) => {
-    if (!err) {
-      let rowData = Object.values(JSON.parse(JSON.stringify(rows)));
-      res.render("requests", { layout: "reqlayout", data: rowData });
-    } else {
-      console.log(err);
-    }
-  });
-};
-//book approval protocol
-exports.bookresolve = (req, res) => {
-  console.log("book protocol called");
-  const { id, status, bookid } = req.body;
-  if (status === 1) {
-    console.log("hi");
-    db.query(
-      "SELECT * FROM books WHERE id=" + db.escape(bookid),
-      (err, rows) => {
-        if (err) throw err;
-        let querytobe;
-        if (rows[0].number === 1) {
-          querytobe =
-            "UPDATE books SET number=" +
-            db.escape(rows[0].number - 1) +
-            " ,avail=0" +
-            " WHERE id=" +
-            db.escape(bookid);
-        } else {
-          querytobe =
-            "UPDATE books SET number=" +
-            db.escape(rows[0].number - 1) +
-            " WHERE id=" +
-            db.escape(bookid);
-        }
-        db.query(querytobe, (err, rows) => {
-          if (err) throw err;
-          console.log("booknumber updated");
-        });
-      }
-    );
-    // let prevnumber = selectbooknumber(bookid);
-    // console.log(prevnumber);
-    // let number = prevnumber - 1;
-    // console.log(number);
-    // updatenumber(bookid, number);
-  }
-  db.query(
-    "UPDATE requests SET status=" +
-      db.escape(status) +
-      ",resolveby=" +
-      db.escape(req.session.userinfo) +
-      ",returned=0" +
-      " WHERE id=" +
-      db.escape(id),
-    (err, rows) => {
-      res.send("resolved");
-    }
-  );
-};
-//past all resolved
-exports.pastresolve = (req, res) => {
-  console.log("user search by admin");
-  db.query(
-    "SELECT * FROM requests WHERE username=" +
-      db.escape(req.query.username) +
-      "ORDER BY id DESC",
-    (err, rows) => {
+  if (req.session.userinfo && req.session.userrole === 1) {
+    console.log("admin request");
+    db.query("SELECT * FROM requests WHERE status=2", (err, rows) => {
       if (!err) {
-        console.log(rows);
         let rowData = Object.values(JSON.parse(JSON.stringify(rows)));
         res.render("requests", { layout: "reqlayout", data: rowData });
       } else {
         console.log(err);
       }
+    });
+  } else {
+    res.send("Not Allowed");
+  }
+};
+//book approval protocol
+exports.bookresolve = (req, res) => {
+  if (req.session.userinfo && req.session.userrole === 1) {
+    console.log("book protocol called");
+    const { id, status, bookid } = req.body;
+    if (status === 1) {
+      console.log("hi");
+      db.query(
+        "SELECT * FROM books WHERE id=" + db.escape(bookid),
+        (err, rows) => {
+          if (err) throw err;
+          let querytobe;
+          if (rows[0].number === 1) {
+            querytobe =
+              "UPDATE books SET number=" +
+              db.escape(rows[0].number - 1) +
+              " ,avail=0" +
+              " WHERE id=" +
+              db.escape(bookid);
+          } else {
+            querytobe =
+              "UPDATE books SET number=" +
+              db.escape(rows[0].number - 1) +
+              " WHERE id=" +
+              db.escape(bookid);
+          }
+          db.query(querytobe, (err, rows) => {
+            if (err) throw err;
+            console.log("booknumber updated");
+          });
+        }
+      );
+      // let prevnumber = selectbooknumber(bookid);
+      // console.log(prevnumber);
+      // let number = prevnumber - 1;
+      // console.log(number);
+      // updatenumber(bookid, number);
     }
-  );
+    db.query(
+      "UPDATE requests SET status=" +
+        db.escape(status) +
+        ",resolveby=" +
+        db.escape(req.session.userinfo) +
+        ",returned=0" +
+        " WHERE id=" +
+        db.escape(id),
+      (err, rows) => {
+        res.send("resolved");
+      }
+    );
+  } else {
+    res.send("Not Allowed");
+  }
+};
+//past all resolved
+exports.pastresolve = (req, res) => {
+  if (req.session.userinfo && req.session.userrole === 1) {
+    console.log("user search by admin");
+    db.query(
+      "SELECT * FROM requests WHERE username=" +
+        db.escape(req.query.username) +
+        "ORDER BY id DESC",
+      (err, rows) => {
+        if (!err) {
+          console.log(rows);
+          let rowData = Object.values(JSON.parse(JSON.stringify(rows)));
+          res.render("requests", { layout: "reqlayout", data: rowData });
+        } else {
+          console.log(err);
+        }
+      }
+    );
+  } else {
+    res.send("Not Allowed");
+  }
 };
 //past user resolved
 exports.userresolved = (req, res) => {
-  db.query(
-    "SELECT * FROM requests WHERE username=" +
-      db.escape(req.session.userinfo) +
-      "ORDER BY id DESC",
-    (err, rows) => {
-      if (!err) {
-        console.log(rows);
-      } else {
-        console.log(err);
+  if (req.session.userinfo && req.session.userrole === 0) {
+    console.log("user called history");
+    db.query(
+      "SELECT * FROM requests WHERE username=" +
+        db.escape(req.session.userinfo) +
+        "ORDER BY id DESC",
+      (err, rows) => {
+        if (!err) {
+          let rowData = Object.values(JSON.parse(JSON.stringify(rows)));
+          res.render("history", { layout: "books", data: rowData });
+        } else {
+          console.log(err);
+        }
       }
-    }
-  );
+    );
+  } else {
+    res.send("Not Allowed");
+  }
 };
 //add books
 exports.addbook = (req, res) => {
-  const { bookname, number } = req.body;
-  db.query(
-    "SELECT * FROM books WHERE bookname=" + db.escape(bookname),
-    (err, rows) => {
-      if (err) throw err;
-      if (rows[0] === undefined) {
-        db.query(
-          "INSERT INTO books (bookname,number,avail) VALUES(" +
-            db.escape(bookname) +
-            "," +
-            db.escape(number) +
-            ",1)",
-          (err, rows) => {
-            if (!err) {
-              res.send("book added");
-            } else {
-              console.log(err);
+  if (req.session.userinfo && req.session.userrole === 1) {
+    const { bookname, number } = req.body;
+    db.query(
+      "SELECT * FROM books WHERE bookname=" + db.escape(bookname),
+      (err, rows) => {
+        if (err) throw err;
+        if (rows[0] === undefined) {
+          db.query(
+            "INSERT INTO books (bookname,number,avail) VALUES(" +
+              db.escape(bookname) +
+              "," +
+              db.escape(number) +
+              ",1)",
+            (err, rows) => {
+              if (!err) {
+                res.send("book added");
+              } else {
+                console.log(err);
+              }
             }
-          }
-        );
-      } else {
-        let updatenumber = parseInt(number) + rows[0].number;
-        db.query(
-          "UPDATE books SET number=" +
-            db.escape(updatenumber) +
-            " WHERE bookname=" +
-            db.escape(bookname),
-          (err, rows) => {
-            if (err) throw err;
-            res.send("updated number of an existing books");
-          }
-        );
+          );
+        } else {
+          let updatenumber = parseInt(number) + rows[0].number;
+          db.query(
+            "UPDATE books SET number=" +
+              db.escape(updatenumber) +
+              " WHERE bookname=" +
+              db.escape(bookname),
+            (err, rows) => {
+              if (err) throw err;
+              res.send("updated number of an existing books");
+            }
+          );
+        }
       }
-    }
-  );
+    );
+  } else {
+    res.send("Not Allowed");
+  }
 };
 //update book
 exports.updatebooks = (req, res) => {
-  console.log("update called change");
-  const { id, avail } = req.body;
-  db.query(
-    "UPDATE books SET avail=" + db.escape(avail) + " WHERE id=" + db.escape(id),
-    (err, rows) => {
-      if (!err) {
-        res.send("updated");
-      } else {
-        console.log(err);
+  if (req.session.userinfo && req.session.userrole === 1) {
+    console.log("update called change");
+    const { id, avail } = req.body;
+    db.query(
+      "UPDATE books SET avail=" +
+        db.escape(avail) +
+        " WHERE id=" +
+        db.escape(id),
+      (err, rows) => {
+        if (!err) {
+          res.send("updated");
+        } else {
+          console.log(err);
+        }
       }
-    }
-  );
+    );
+  } else {
+    res.send("Not Allowed");
+  }
 };
 
 //return books
 exports.returnbooks = (req, res) => {
-  const { id, bookid } = req.body;
-  db.query("SELECT * FROM books WHERE id=" + db.escape(bookid), (err, rows) => {
-    if (err) throw err;
-    let querytobe1;
-    if (rows[0].number === 0) {
-      querytobe1 =
-        "UPDATE books SET number=" +
-        db.escape(rows[0].number + 1) +
-        " ,avail=1" +
-        " WHERE id=" +
-        db.escape(bookid);
-    } else {
-      querytobe1 =
-        "UPDATE books SET number=" +
-        db.escape(rows[0].number + 1) +
-        " WHERE id=" +
-        db.escape(bookid);
-    }
-    db.query(querytobe1, (err, rows) => {
-      if (err) throw err;
-      console.log("booknumber updated");
-      db.query(
-        "UPDATE requests SET returned=1 WHERE id=" + db.escape(id),
-        (err, rows) => {
-          if (err) throw err;
-          console.log("returned successfully");
-          res.send("returned success");
+  if (req.session.userinfo && req.session.userrole === 1) {
+    const { id, bookid } = req.body;
+    db.query(
+      "SELECT * FROM books WHERE id=" + db.escape(bookid),
+      (err, rows) => {
+        if (err) throw err;
+        let querytobe1;
+        if (rows[0].number === 0) {
+          querytobe1 =
+            "UPDATE books SET number=" +
+            db.escape(rows[0].number + 1) +
+            " ,avail=1" +
+            " WHERE id=" +
+            db.escape(bookid);
+        } else {
+          querytobe1 =
+            "UPDATE books SET number=" +
+            db.escape(rows[0].number + 1) +
+            " WHERE id=" +
+            db.escape(bookid);
         }
-      );
-    });
-  });
+        db.query(querytobe1, (err, rows) => {
+          if (err) throw err;
+          console.log("booknumber updated");
+          db.query(
+            "UPDATE requests SET returned=1 WHERE id=" + db.escape(id),
+            (err, rows) => {
+              if (err) throw err;
+              console.log("returned successfully");
+              res.send("returned success");
+            }
+          );
+        });
+      }
+    );
+  } else {
+    res.send("Not Allowed");
+  }
 };
 //Auto algos
 // function selectbooknumber(bookid) {

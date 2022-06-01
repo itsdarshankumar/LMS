@@ -1,4 +1,3 @@
-
 function add() {
   (async () => {
     const { value: text } = await Swal.fire({
@@ -63,8 +62,6 @@ function filter(message) {
     }
   })();
 }
-document.getElementById("add").addEventListener("click", add);
-document.getElementById("filter").addEventListener("click", searchto);
 
 function postmessage(book, number) {
   axios
@@ -76,6 +73,10 @@ function postmessage(book, number) {
       window.location.href = "http://localhost:5000/book";
       console.log(res);
     });
+}
+
+function posthistory() {
+  window.location.href="http://localhost:5000/book/history"
 }
 
 // function postfilter(tag) {

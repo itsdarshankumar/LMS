@@ -7,6 +7,7 @@ const port = process.env.PORT || 5000;
 const session = require("express-session");
 const cookie = require("cookie-parser");
 app.use(express.json());
+
 app.use(express.urlencoded({ extended: true }));
 
 app.use(express.static(__dirname + "/public"));
@@ -37,15 +38,6 @@ hbs.handlebars.registerHelper("eq", function (a, b) {
   }
 });
 
-hbs.handlebars.registerHelper("role", function (r) {
-  console.log("hi");
-  console.log("ll");
-  if (req.session.userrole === 1) {
-    return 1;
-  } else {
-    return 0;
-  }
-});
 const rootroute = require("./server/routers/loginroute.js");
 const bookroute = require("./server/routers/bookroute.js");
 const req = require("express/lib/request");

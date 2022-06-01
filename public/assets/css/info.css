@@ -30,6 +30,14 @@ img {
   width: 800px;
   margin-top: 4vh;
 }
+.mastertable{
+  border-radius: 10px;
+  max-width: calc(100% - 2em);
+  margin: 1em auto;
+  overflow: hidden;
+  width: 800px;
+  margin-top: 4vh;
+}
 
 table {
   width: 100%;
