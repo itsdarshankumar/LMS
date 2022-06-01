@@ -140,11 +140,7 @@ exports.bookresolve = (req, res) => {
           });
         }
       );
-      // let prevnumber = selectbooknumber(bookid);
-      // console.log(prevnumber);
-      // let number = prevnumber - 1;
-      // console.log(number);
-      // updatenumber(bookid, number);
+
     }
     db.query(
       "UPDATE requests SET status=" +
@@ -311,33 +307,3 @@ exports.returnbooks = (req, res) => {
     res.send("Not Allowed");
   }
 };
-//Auto algos
-// function selectbooknumber(bookid) {
-//   console.log("selectbooknumber called");
-//   db.query("SELECT * FROM books WHERE id=" + db.escape(bookid), (err, rows) => {
-//     if (err) throw err;
-//     console.log(rows[0]);
-//     return rows[0].number;
-//   });
-// }
-
-// const updatenumber = (bookid, number) => {
-//   db.query(
-//     "UPDATE books SET number=" +
-//       db.escape(number) +
-//       " WHERE id=" +
-//       db.escape(bookid),
-//     (err, rows) => {
-//       if (err) throw err;
-//       console.log("booknumber updated");
-//     }
-//   );
-// };
-
-// const bookid = (id) => {
-//   db.query("SELECT * FROM requests WHERE id=" + db.escape(id), (err, rows) => {
-//     if (err) throw err;
-//     console.log(rows[0]);
-//     return rows[0].bookid;
-//   });
-// };
