@@ -16,6 +16,8 @@ exports.book = (req, res) => {
       console.log("search");
       queryto =
         "SELECT * FROM books WHERE bookname=" + db.escape(req.query.search);
+    } else if (req.session.userrole === 1) {
+      queryto = "SELECT * FROM books ORDER BY id DESC";
     } else {
       queryto = "SELECT * FROM books WHERE avail = 1 ORDER BY id DESC";
     }
