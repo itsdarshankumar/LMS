@@ -56,6 +56,7 @@ async function checkconfirm(element) {
     console.log("permission granted");
 
     Swal.fire("Done!", "Successful checkout.", "success");
+    console.log("postcheck called")
     postcheck(element);
   }
 }

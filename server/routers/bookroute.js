@@ -4,7 +4,7 @@ const bookcontroller = require("../controllers/bookcontroller");
 const middleware = require("../middleware.js");
 
 router.get("/", bookcontroller.book);
-router.post("/", middleware.adminauth, bookcontroller.booksubmit);
+router.post("/", middleware.userauth, bookcontroller.booksubmit);
 router.get("/admin", middleware.adminauth, bookcontroller.bookapprovalrender);
 router.post("/admin", middleware.adminauth, bookcontroller.bookresolve);
 router.get("/admin/history", middleware.adminauth, bookcontroller.pastresolve);
